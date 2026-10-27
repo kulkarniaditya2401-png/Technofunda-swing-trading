@@ -1,0 +1,40 @@
+name: Daily TechnoFunda Swing Scan & Supabase Sync
+
+on:
+  schedule:
+    # 10:15 UTC = 15:45 (3:45 PM) IST, Monday to Friday (After NSE/BSE market close)
+    - cron: '15 10 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      force_mock:
+        description: 'Simulate high-volume breakouts if market quiet (true/false)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  run-screener:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run TechnoFunda Pipeline and Sync to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_KEY }}
+          SCREENER_SESSION_ID: ${{ secrets.SCREENER_SESSION_ID }}
+        run: |
+          python backend/supabase_sync.py

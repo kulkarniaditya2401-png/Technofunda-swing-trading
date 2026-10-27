@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/", "destination": "/frontend/index.html" },
+    { "source": "/config.js", "destination": "/frontend/config.js" },
+    { "source": "/(.*)", "destination": "/frontend/$1" }
+  ]
+}

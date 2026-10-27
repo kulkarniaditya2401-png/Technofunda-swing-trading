@@ -106,10 +106,15 @@ def log_event(message: str) -> None:
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     """Serve the Dark-Mode Tailwind CSS dashboard UI."""
-    index_path = os.path.join(TEMPLATES_DIR, "index.html")
-    if not os.path.exists(index_path):
+    # Check frontend/index.html first, then frontend/templates/index.html
+    candidate_paths = [
+        os.path.join(PROJECT_ROOT, "frontend", "index.html"),
+        os.path.join(TEMPLATES_DIR, "index.html"),
+    ]
+    index_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+    if not index_path:
         return HTMLResponse(
-            f"<h2>Dashboard template not found at {index_path}</h2>",
+            f"<h2>Dashboard template not found at {candidate_paths[0]}</h2>",
             status_code=404,
         )
     with open(index_path, "r", encoding="utf-8") as f:
@@ -217,6 +222,21 @@ async def run_pipeline(payload: Optional[PipelineRequest] = None):
         log_event(
             f"Pipeline Completed! Identified {len(final_triggers_df)} EOD Trade Ready stocks (Vol >= {min_vol_mult}x, Price <= Rs.{price_ceiling})."
         )
+
+        # Sync to Supabase if configured
+        try:
+            from backend.supabase_sync import sync_to_supabase
+            if os.getenv("SUPABASE_URL") and (os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")):
+                log_event("Pushing live results to Supabase...")
+                sync_to_supabase(
+                    fund_df=fund_df,
+                    triggers_df=final_triggers_df,
+                    all_tech_df=app_state["all_technical_df"],
+                    logs=app_state["logs"],
+                )
+                log_event("Supabase database successfully synced.")
+        except Exception as sync_err:
+            logger.warning("Supabase sync skipped/failed: %s", sync_err)
 
         return {
             "status": "success",
