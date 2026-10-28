@@ -3,8 +3,8 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/frontend/templates/index.html"
+      "source": "/((?!api|config\\.js).*)",
+      "destination": "/index.html"
     }
   ]
 }

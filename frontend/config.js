@@ -1,108 +1,31 @@
-
 /**
  * TechnoFunda Swing Trading Dashboard
  * Frontend Runtime Configuration
  *
- * Supabase credentials are loaded automatically
- * from the FastAPI backend's .env file.
- *
- * IMPORTANT:
- * - Never expose SUPABASE_SERVICE_ROLE_KEY.
- * - Only the public Supabase URL and publishable/anon key
- *   should be returned to the browser.
- * - FastAPI must be deployed and publicly accessible.
+ * Supabase public credentials for live data fetching directly in the browser.
+ * Data security is enforced by Supabase Row-Level Security (RLS) policies.
  */
 
 (function () {
   "use strict";
 
-  // Set this to your deployed FastAPI backend HTTPS URL.
-  //
-  // Example:
-  // "https://technofunda-backend.onrender.com"
-  //
-  // Leave empty ONLY when frontend and backend
-  // share the same origin or an API proxy is configured.
+  // Public Supabase project URL and anon/publishable key
+  const SUPABASE_URL = "https://trejvbjnfcrjorvxaqud.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_HxWuPJw-abwbsBSsN_j1lw_giMz4OpW";
 
+  // Set this ONLY if you have deployed the FastAPI backend (e.g., Render, Railway)
+  // and wish to trigger scans on-demand from the browser.
+  // Leave empty for Supabase cloud mode (automated scans via GitHub Actions).
   window.API_BASE_URL = window.API_BASE_URL || "";
 
   window.SUPABASE_CONFIG = {
-    url: "",
-    anonKey: "",
-    ready: false,
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
+    ready: true,
     error: null
   };
 
-  async function loadSupabaseConfig() {
-    try {
-      const base = window.API_BASE_URL.replace(/\/+$/, "");
+  window.SUPABASE_CONFIG_READY = Promise.resolve(window.SUPABASE_CONFIG);
 
-      const endpoint = `${base}/api/public-config`;
-
-      console.log(
-        "[TechnoFunda] Loading Supabase configuration..."
-      );
-
-      const response = await fetch(endpoint, {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          "Accept": "application/json"
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Backend configuration request failed: HTTP ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-
-      const url = String(data.url || "").trim();
-
-      const anonKey = String(data.anonKey || "").trim();
-
-      if (!url || !anonKey) {
-        throw new Error(
-          "Backend did not return Supabase URL and public key."
-        );
-      }
-
-      if (!/^https:\/\/[^/]+\.supabase\.co\/?$/.test(url)) {
-        throw new Error(
-          "Invalid Supabase project URL returned by backend."
-        );
-      }
-
-      Object.assign(window.SUPABASE_CONFIG, {
-        url: url.replace(/\/+$/, ""),
-        anonKey: anonKey,
-        ready: true,
-        error: null
-      });
-
-      console.log(
-        "[TechnoFunda] Supabase configuration loaded successfully."
-      );
-
-    } catch (error) {
-      Object.assign(window.SUPABASE_CONFIG, {
-        url: "",
-        anonKey: "",
-        ready: false,
-        error: error.message
-      });
-
-      console.error(
-        "[TechnoFunda] Failed to load Supabase configuration:",
-        error
-      );
-    }
-
-    return window.SUPABASE_CONFIG;
-  }
-
-  window.SUPABASE_CONFIG_READY = loadSupabaseConfig();
-
+  console.log("[TechnoFunda] Supabase runtime configuration loaded.");
 })();

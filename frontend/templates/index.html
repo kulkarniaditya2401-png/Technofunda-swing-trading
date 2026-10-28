@@ -767,36 +767,38 @@
 
     async function initSupabase() {
       try {
-        // Wait for config.js to fetch credentials from FastAPI.
-        const config = await window.SUPABASE_CONFIG_READY;
+        let config = null;
+        if (window.SUPABASE_CONFIG_READY) {
+          try {
+            config = await window.SUPABASE_CONFIG_READY;
+          } catch (e) {
+            console.warn('[Supabase] SUPABASE_CONFIG_READY notice:', e);
+          }
+        }
 
-        if (!config || !config.ready || !config.url || !config.anonKey) {
-          throw new Error(
-            config?.error || "Missing public Supabase configuration"
-          );
+        const storedUrl = localStorage.getItem('technofunda_supabase_url');
+        const storedKey = localStorage.getItem('technofunda_supabase_key');
+        const defaultUrl = 'https://trejvbjnfcrjorvxaqud.supabase.co';
+        const defaultKey = 'sb_publishable_HxWuPJw-abwbsBSsN_j1lw_giMz4OpW';
+
+        const url = (storedUrl || (config && config.url) || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || defaultUrl).trim();
+        const key = (storedKey || (config && config.anonKey) || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || defaultKey).trim();
+
+        if (!url || !key) {
+          throw new Error("Missing public Supabase configuration");
         }
 
         if (!window.supabase) {
           throw new Error("Supabase JavaScript SDK failed to load");
         }
 
-        supabaseClient = window.supabase.createClient(
-          config.url,
-          config.anonKey
-        );
-
-        console.log("[Supabase] Initialized automatically");
+        supabaseClient = window.supabase.createClient(url, key);
+        console.log("[Supabase] Initialized successfully with:", url);
         return true;
 
       } catch (error) {
         supabaseClient = null;
         console.error("[Supabase] Initialization failed:", error);
-
-        showToast(
-          "Cloud database unavailable: " + error.message,
-          "error"
-        );
-
         return false;
       }
     }
@@ -900,11 +902,14 @@
           }
         }
 
-        // Fallback to local FastAPI if Supabase is not active
-        const res = await fetch('/api/status');
-        if (!res.ok) return;
-        const data = await res.json();
-        renderStatusData(data);
+        // Fallback to local FastAPI if Supabase is not active and on localhost or API_BASE_URL is set
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/status`);
+          if (!res.ok) return;
+          const data = await res.json();
+          renderStatusData(data);
+        }
 
       } catch (err) {
         console.debug('Status check notice:', err);
@@ -948,7 +953,7 @@
             .select('*')
             .order('volume_spike_multiplier', { ascending: false });
 
-          if (!error && data && data.length > 0) {
+          if (!error && data) {
             // Map Supabase snake_case columns to template expected keys
             currentTriggers = data.map(item => ({
               'Symbol': item.symbol,
@@ -984,15 +989,18 @@
           }
         }
 
-        // Fallback to FastAPI
-        const res = await fetch('/api/final-stocks');
-        if (!res.ok) return;
-        const data = await res.json();
-        currentTriggers = data.stocks || [];
+        // Fallback to FastAPI if running locally or API_BASE_URL is configured
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/final-stocks`);
+          if (!res.ok) return;
+          const data = await res.json();
+          currentTriggers = data.stocks || [];
 
-        document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
-        document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
-        renderTriggersTable(currentTriggers);
+          document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
+          document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
+          renderTriggersTable(currentTriggers);
+        }
 
       } catch (err) {
         console.error('Error loading final stocks:', err);
@@ -1008,7 +1016,7 @@
             .select('*')
             .order('symbol', { ascending: true });
 
-          if (!error && data && data.length > 0) {
+          if (!error && data) {
             currentWatchlist = data.map(item => ({
               'Symbol': item.symbol,
               'Name': item.name,
@@ -1031,15 +1039,18 @@
           }
         }
 
-        // Fallback to FastAPI
-        const res = await fetch('/api/fundamental-stocks');
-        if (!res.ok) return;
-        const data = await res.json();
-        currentWatchlist = data.stocks || [];
+        // Fallback to FastAPI if running locally or API_BASE_URL is configured
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/fundamental-stocks`);
+          if (!res.ok) return;
+          const data = await res.json();
+          currentWatchlist = data.stocks || [];
 
-        document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
-        document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
-        renderWatchlistTable(currentWatchlist);
+          document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
+          document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
+          renderWatchlistTable(currentWatchlist);
+        }
 
       } catch (err) {
         console.error('Error loading watchlist:', err);
@@ -1219,38 +1230,43 @@
       showToast('Initiating TechnoFunda Swing Pipeline scan...', 'info');
 
       try {
-        const res = await fetch('/api/run-pipeline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            force_mock: forceMock,
-            price_ceiling: 600.0,
-            min_volume_multiplier: 1.5,
-          }),
-        });
+        const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+        if (base || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const res = await fetch(`${base}/api/run-pipeline`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              force_mock: forceMock,
+              price_ceiling: 600.0,
+              min_volume_multiplier: 1.5,
+            }),
+          });
 
-        if (res.ok) {
-          const data = await res.json();
-          currentTriggers = data.final_triggers || [];
-          currentWatchlist = data.all_stocks || [];
+          if (res.ok) {
+            const data = await res.json();
+            currentTriggers = data.final_triggers || [];
+            currentWatchlist = data.all_stocks || [];
 
-          document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
-          document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
-          document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
-          document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
-          document.getElementById('lastScanTime').innerText = data.last_run || 'Just now';
+            document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
+            document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
+            document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
+            document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
+            document.getElementById('lastScanTime').innerText = data.last_run || 'Just now';
 
-          renderTriggersTable(currentTriggers);
-          renderWatchlistTable(currentWatchlist);
-          fetchStatus();
-          showToast(`Scan Complete! Found ${currentTriggers.length} actionable EOD breakouts under ₹600.`, 'success');
+            renderTriggersTable(currentTriggers);
+            renderWatchlistTable(currentWatchlist);
+            fetchStatus();
+            showToast(`Scan Complete! Found ${currentTriggers.length} actionable EOD breakouts under ₹600.`, 'success');
+          } else {
+            showToast('Scan execution failed on backend server.', 'error');
+          }
         } else {
-          // On Vercel (where FastAPI server is not hosted), inform user
-          showToast('Cloud mode active: automated daily scan runs at 3:45 PM IST via GitHub Actions.', 'info');
+          showToast('Cloud mode active: scans run automatically via GitHub Actions (or trigger workflow in GitHub). Refreshing data...', 'info');
+          await loadAllData();
         }
 
       } catch (err) {
-        console.warn('Local API not running (Vercel cloud mode):', err);
+        console.warn('Scan notice:', err);
         showToast('Tip: Scans run automatically via GitHub Actions, or run `python backend/supabase_sync.py` locally!', 'info');
       } finally {
         runBtn.disabled = false;
@@ -1307,10 +1323,11 @@
         }
       }
 
-      // Try FastAPI backend if not drawn
-      if (!chartDrawn) {
+      // Try FastAPI backend if not drawn and running locally or API_BASE_URL is configured
+      if (!chartDrawn && (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
-          const res = await fetch(`/api/stock/${stock['Symbol']}/chart?price=${price}`);
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/stock/${stock['Symbol']}/chart?price=${price}`);
           if (res.ok) {
             const json = await res.json();
             drawStockCanvas(json.data);

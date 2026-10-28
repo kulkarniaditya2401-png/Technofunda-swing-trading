@@ -119,11 +119,26 @@ def log_event(message: str) -> None:
     logger.info(message)
 
 
+@app.get("/config.js")
+async def serve_config_js():
+    """Serves config.js for local development."""
+    candidate_paths = [
+        os.path.join(TEMPLATES_DIR, "config.js"),
+        os.path.join(PROJECT_ROOT, "frontend", "config.js"),
+        os.path.join(PROJECT_ROOT, "config.js"),
+    ]
+    config_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+    if not config_path:
+        raise HTTPException(status_code=404, detail="config.js not found")
+    return FileResponse(config_path, media_type="application/javascript")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     """Serve the Dark-Mode Tailwind CSS dashboard UI."""
-    # Check frontend/index.html first, then frontend/templates/index.html
+    # Check root index.html first, then frontend/index.html, then frontend/templates/index.html
     candidate_paths = [
+        os.path.join(PROJECT_ROOT, "index.html"),
         os.path.join(PROJECT_ROOT, "frontend", "index.html"),
         os.path.join(TEMPLATES_DIR, "index.html"),
     ]

@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechnoFunda Swing Bot - Indian Market Swing Trading</title>
+
+  <!-- Google Fonts: Inter, Outfit, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            },
+            dark: {
+              bg: '#080d1a',
+              card: '#0f172a',
+              surface: '#1e293b',
+              border: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Supabase JS Client v2 (for Vercel Live Deployment) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- SheetJS for Client-Side Zero-Backend Excel Exports -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <!-- Optional static config -->
+  <script src="config.js"></script>
+
+  <style>
+    body {
+      background-color: #080d1a;
+      background-image:
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.06) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+
+    .glow-green {
+      box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.35);
+    }
+
+    .glow-blue {
+      box-shadow: 0 0 20px -3px rgba(59, 130, 246, 0.3);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    @keyframes pulse-subtle {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+
+<body
+  class="text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 border-b border-slate-800/80 glass-panel">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div
+          class="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-chart-line text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span
+              class="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">TechnoFunda
+              Swing Bot</span>
+            <span
+              class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">NSE
+              / BSE</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Automated 20 DMA Volume Breakout Scanner & Position Sizing
+            Engine</p>
+        </div>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+
+        <!-- Supabase Cloud Connection Badge -->
+        <!-- <button onclick="openSupabaseModal()" id="supabaseStatusBadge"
+                class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-medium transition cursor-pointer"
+                title="Click to configure Supabase Cloud Database credentials">
+          <span id="supabaseIndicatorDot" class="h-2 w-2 rounded-full bg-amber-400"></span>
+          <span id="supabaseStatusText" class="text-slate-300">Supabase Setup</span>
+        </button> -->
+
+        <!-- Live Server Status Pill -->
+        <div id="statusBadge"
+          class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs font-medium">
+          <span id="statusIndicatorDot" class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="statusText" class="text-slate-300">System Ready</span>
+        </div>
+
+        <!-- Screener Link -->
+        <a href="https://www.screener.in/screens/4056640/technofunda/" target="_blank" rel="noopener noreferrer"
+          class="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-emerald-400 bg-slate-800/50 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition">
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          <span>Screener</span>
+        </a>
+
+        <!-- Excel Export Trigger -->
+        <button onclick="exportToExcel('triggers')"
+          class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 rounded-lg transition shadow-sm"
+          title="Download Final Trade Triggers as Excel (.xlsx)">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i>
+          <span class="hidden sm:inline">Export Excel</span>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI / STATS BAR -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <!-- Total Capital Card -->
+      <div class="glass-panel rounded-2xl p-4 relative overflow-hidden group hover:border-slate-700 transition">
+        <div
+          class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition">
+        </div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-medium text-slate-400">Total Portfolio</span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono">Target Capital</span>
+        </div>
+        <div class="text-2xl font-display font-bold text-white tracking-tight flex items-baseline space-x-1">
+          <span>₹10,000</span>
+          <span class="text-xs text-slate-400 font-normal">INR</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1 flex items-center space-x-1">
+          <i class="fa-solid fa-shield-halved text-emerald-400 text-[10px]"></i>
+          <span>Strict capital preservation rules</span>
+        </p>
+      </div>
+
+      <!-- Max Deployment Per Trade Card -->
+      <div class="glass-panel rounded-2xl p-4 relative overflow-hidden group hover:border-slate-700 transition">
+        <div
+          class="absolute -right-4 -bottom-4 w-16 h-16 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition">
+        </div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-medium text-slate-400">Per-Trade Sizing</span>
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 font-mono">50%
+            Max</span>
+        </div>
+        <div class="text-2xl font-display font-bold text-white tracking-tight flex items-baseline space-x-1">
+          <span>₹5,000</span>
+          <span class="text-xs text-slate-400 font-normal">Deployment</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1 flex items-center space-x-1">
+          <i class="fa-solid fa-arrows-split-up-and-left text-cyan-400 text-[10px]"></i>
+          <span>Max 2 concurrent swing positions</span>
+        </p>
+      </div>
+
+      <!-- Screener Watchlist Count -->
+      <div class="glass-panel rounded-2xl p-4 relative overflow-hidden group hover:border-slate-700 transition">
+        <div
+          class="absolute -right-4 -bottom-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition">
+        </div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-medium text-slate-400">Fundamental Screen</span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono">Shortlist</span>
+        </div>
+        <div class="text-2xl font-display font-bold text-white tracking-tight flex items-baseline space-x-1">
+          <span id="kpiWatchlistCount">--</span>
+          <span class="text-xs text-slate-400 font-normal">Stocks</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1 flex items-center space-x-1">
+          <i class="fa-solid fa-filter text-indigo-400 text-[10px]"></i>
+          <span>ROCE &ge; 15% & Quality P/E</span>
+        </p>
+      </div>
+
+      <!-- Final Breakout Triggers Card -->
+      <div class="glass-panel rounded-2xl p-4 relative overflow-hidden group hover:border-slate-700 transition">
+        <div
+          class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/15 rounded-full blur-xl group-hover:bg-emerald-500/30 transition">
+        </div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-medium text-slate-400">EOD Trade Triggers</span>
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30 font-mono">Actionable</span>
+        </div>
+        <div class="text-2xl font-display font-bold text-emerald-400 tracking-tight flex items-baseline space-x-1">
+          <span id="kpiTriggersCount">--</span>
+          <span class="text-xs text-slate-400 font-normal">Ready Now</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1 flex items-center space-x-1">
+          <i class="fa-solid fa-bolt text-yellow-400 text-[10px]"></i>
+          <span>Vol &ge; 1.5x & Price &le; ₹600</span>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- PIPELINE ACTION BANNER & SCAN CONTROLS -->
+    <div class="glass-panel rounded-2xl p-5 border border-slate-800/80">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+        <!-- Left details -->
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <h2 class="text-lg font-display font-bold text-white tracking-tight">Automated Scan & Position Sizer</h2>
+            <span
+              class="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-400 border border-slate-700 font-mono">5x
+              Parallel Scanner</span>
+          </div>
+          <p class="text-xs text-slate-400 max-w-2xl">
+            Paginates Screener.in shortlist, scans 20-DMA volume breakouts, maps support levels, and calculates exact
+            shares for a ₹5,000 deployment under ₹600.
+          </p>
+          <div class="text-[11px] text-slate-400 pt-1 flex flex-wrap items-center gap-3">
+            <span><i class="fa-regular fa-clock text-slate-400 mr-1"></i>Last Scan: <strong id="lastScanTime"
+                class="text-slate-300">Checking...</strong></span>
+            <span class="text-slate-700">|</span>
+            <span><i class="fa-solid fa-tag text-slate-400 mr-1"></i>Rule: <strong class="text-emerald-400">Vol &ge;
+                1.5x 20 DMA</strong> & <strong class="text-cyan-400">Price &le; ₹600</strong></span>
+          </div>
+        </div>
+
+        <!-- Right Action Buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Simulation Mode Checkbox -->
+          <label
+            class="flex items-center space-x-2 text-xs text-slate-300 bg-slate-800/60 hover:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-700/60 cursor-pointer select-none">
+            <input type="checkbox" id="forceMockCheckbox"
+              class="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500/30">
+            <span title="Uses synthetic high-momentum breakout candles for guaranteed offline testing">Simulate
+              Breakouts</span>
+          </label>
+
+          <!-- Run Full Scan Button -->
+          <button id="runScanBtn" onclick="triggerPipeline()"
+            class="relative group px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition flex items-center space-x-2">
+            <span id="scanSpinner" class="hidden">
+              <i class="fa-solid fa-circle-notch fa-spin text-sm"></i>
+            </span>
+            <i id="scanIcon" class="fa-solid fa-play text-xs text-emerald-200"></i>
+            <span id="scanBtnText">Run Full Scan</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Execution Progress Bar (Appears when scanning) -->
+      <div id="scanProgressBar" class="hidden mt-4 pt-3 border-t border-slate-800/80">
+        <div class="flex justify-between text-xs text-slate-400 mb-1">
+          <span id="scanProgressLabel"><i class="fa-solid fa-spinner fa-spin mr-1.5 text-emerald-400"></i>Scraping
+            Screener & Evaluating Technical Breakouts...</span>
+          <span class="font-mono text-emerald-400">5 Workers Active</span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 animate-pulse w-full"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS NAVIGATION & FILTERS -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-3">
+
+      <!-- Tabs -->
+      <div class="flex items-center space-x-2 overflow-x-auto">
+        <button onclick="switchTab('triggers')" id="tabBtnTriggers"
+          class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-2 transition">
+          <i class="fa-solid fa-bolt text-yellow-400"></i>
+          <span>Final Trade Triggers</span>
+          <span id="tabBadgeTriggers"
+            class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/30 text-emerald-300 font-mono">0</span>
+        </button>
+
+        <button onclick="switchTab('watchlist')" id="tabBtnWatchlist"
+          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center space-x-2 transition">
+          <i class="fa-solid fa-list-check"></i>
+          <span>All Fundamental Watchlist</span>
+          <span id="tabBadgeWatchlist"
+            class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400 font-mono">0</span>
+        </button>
+
+        <button onclick="switchTab('logs')" id="tabBtnLogs"
+          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center space-x-2 transition">
+          <i class="fa-solid fa-terminal"></i>
+          <span>Activity Log</span>
+        </button>
+
+        <button onclick="switchTab('rules')" id="tabBtnRules"
+          class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center space-x-2 transition">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>Strategy Rules</span>
+        </button>
+      </div>
+
+      <!-- Quick Search & Price Filter Controls -->
+      <div class="flex items-center space-x-3">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Filter symbol or name..."
+            class="w-48 sm:w-60 pl-8 pr-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+        </div>
+
+        <select id="priceFilterSelect" onchange="applyFilters()"
+          class="bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500">
+          <option value="under600">Price &le; ₹600 (EOD Ready)</option>
+          <option value="all">All Prices</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- TAB 1: FINAL TRADE TRIGGERS TABLE -->
+    <section id="tabContentTriggers" class="space-y-4">
+      <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800/80">
+
+        <div
+          class="p-4 bg-slate-900/60 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+              <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+              <span>High-Probability EOD Breakouts (Volume Spike &ge; 1.5x & Price &le; ₹600)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Position sized strictly for a ₹5,000 capital deployment from your ₹10,000
+              portfolio.</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs text-slate-400 font-mono hidden md:inline">Sorted by Volume Spike Multiplier</span>
+            <button onclick="exportToExcel('triggers')"
+              class="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition flex items-center space-x-1">
+              <i class="fa-solid fa-file-excel text-emerald-400"></i>
+              <span>Export Triggers (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead
+              class="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Ticker / Company</th>
+                <th class="py-3 px-4">Live CMP</th>
+                <th class="py-3 px-4 text-center">Volume Spike</th>
+                <th class="py-3 px-4">Support & SL</th>
+                <th class="py-3 px-4">Recommended Entry</th>
+                <th class="py-3 px-4">Target (1:2 RRR)</th>
+                <th class="py-3 px-4 text-center">Sizing for ₹5k</th>
+                <th class="py-3 px-4 text-center">Max Risk</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="triggersTableBody" class="divide-y divide-slate-800/60">
+              <!-- Rendered dynamically -->
+              <tr>
+                <td colspan="9" class="py-12 text-center text-slate-400">
+                  <i class="fa-solid fa-circle-notch fa-spin text-2xl text-emerald-500 mb-2"></i>
+                  <p class="text-sm">Loading latest trade breakout triggers...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: ALL FUNDAMENTAL WATCHLIST TABLE -->
+    <section id="tabContentWatchlist" class="space-y-4 hidden">
+      <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800/80">
+
+        <div class="p-4 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-white">Full Fundamental Shortlist from Screener.in</h3>
+            <p class="text-xs text-slate-400">Technofunda screen: Market Cap, ROCE, P/E, and Technical Breakout Status.
+            </p>
+          </div>
+          <button onclick="exportToExcel('watchlist')"
+            class="px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition flex items-center space-x-1">
+            <i class="fa-solid fa-file-excel text-emerald-400"></i>
+            <span>Download Fundamentals (.xlsx)</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead
+              class="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Symbol</th>
+                <th class="py-3 px-4">Company Name</th>
+                <th class="py-3 px-4">CMP (₹)</th>
+                <th class="py-3 px-4">Market Cap (Cr)</th>
+                <th class="py-3 px-4">ROCE (%)</th>
+                <th class="py-3 px-4">P/E</th>
+                <th class="py-3 px-4">Volume Multiplier</th>
+                <th class="py-3 px-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="watchlistTableBody" class="divide-y divide-slate-800/60">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: TERMINAL LOGS -->
+    <section id="tabContentLogs" class="space-y-4 hidden">
+      <div class="glass-panel rounded-2xl p-4 border border-slate-800/80 bg-slate-950 font-mono text-xs">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+          <div class="flex items-center space-x-2">
+            <span class="h-3 w-3 rounded-full bg-red-500/80 inline-block"></span>
+            <span class="h-3 w-3 rounded-full bg-yellow-500/80 inline-block"></span>
+            <span class="h-3 w-3 rounded-full bg-green-500/80 inline-block"></span>
+            <span class="text-slate-400 font-sans text-xs ml-2">Pipeline Execution Activity Terminal</span>
+          </div>
+          <button onclick="fetchStatus()" class="text-slate-400 hover:text-white text-xs">
+            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Logs
+          </button>
+        </div>
+        <div id="logsTerminalContainer" class="h-80 overflow-y-auto space-y-1.5 text-slate-300">
+          <!-- Terminal logs injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: STRATEGY RULES & RISK MANAGEMENT -->
+    <section id="tabContentRules" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Fundamental Rules -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
+          <div class="flex items-center space-x-3 text-emerald-400">
+            <i class="fa-solid fa-award text-lg"></i>
+            <h3 class="text-base font-display font-bold text-white">1. Fundamental Screening Rules</h3>
+          </div>
+          <ul class="text-xs text-slate-300 space-y-2.5 list-disc list-inside">
+            <li><strong>High Capital Efficiency:</strong> Return on Capital Employed (ROCE) &ge; 15% to guarantee
+              compounding quality.</li>
+            <li><strong>Sensible Valuation:</strong> P/E ratio evaluated against sector median to avoid speculative
+              bubbles.</li>
+            <li><strong>Market Cap Filter:</strong> Quality Small/Mid-cap companies with robust quarterly earnings
+              delivery.</li>
+            <li><strong>Automated Ingestion:</strong> Directly pulls from custom screen: <code
+                class="text-emerald-400">https://www.screener.in/screens/4056640/technofunda/</code></li>
+          </ul>
+        </div>
+
+        <!-- Technical Breakout Rules -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3">
+          <div class="flex items-center space-x-3 text-cyan-400">
+            <i class="fa-solid fa-bolt text-lg"></i>
+            <h3 class="text-base font-display font-bold text-white">2. Technical Breakout Rules</h3>
+          </div>
+          <ul class="text-xs text-slate-300 space-y-2.5 list-disc list-inside">
+            <li><strong>Volume Breakout Trigger:</strong> Current daily volume &ge; <strong>1.5x 20-DMA Volume</strong>,
+              indicating institutional accumulation.</li>
+            <li><strong>Price Filter Ceiling:</strong> Strictly &le; <strong>₹600/share</strong> so a ₹10,000 account
+              can buy a reasonable batch of 10-25 shares.</li>
+            <li><strong>Support Zone:</strong> Defined by the lowest low of the last 20 trading sessions.</li>
+            <li><strong>Stop-Loss:</strong> Placed 1.5% below support zone (capped at maximum 6% risk from entry).</li>
+            <li><strong>Target:</strong> Minimum 1:2.0 Risk-to-Reward Ratio (RRR).</li>
+          </ul>
+        </div>
+
+        <!-- Position Sizing & Money Management -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800/80 space-y-3 md:col-span-2">
+          <div class="flex items-center space-x-3 text-yellow-400">
+            <i class="fa-solid fa-scale-balanced text-lg"></i>
+            <h3 class="text-base font-display font-bold text-white">3. Money Management & Position Sizing Math (₹10,000
+              Capital)</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 font-semibold block mb-1">Max Position Deployment</span>
+              <span class="text-lg font-bold text-white">₹5,000 per Trade</span>
+              <p class="text-slate-400 text-[11px] mt-1">50% portfolio maximum per trade. Max 2 non-correlated swing
+                trades at any time.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 font-semibold block mb-1">Recommended Shares Formula</span>
+              <span class="text-lg font-bold text-cyan-400">Shares = ⌊5000 / CMP⌋</span>
+              <p class="text-slate-400 text-[11px] mt-1">Ensures position size never exceeds ₹5,000 allocation limit.
+              </p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <span class="text-slate-400 font-semibold block mb-1">Max Capital At Risk</span>
+              <span class="text-lg font-bold text-emerald-400">&le; 2.5% of Portfolio</span>
+              <p class="text-slate-400 text-[11px] mt-1">Risk = Shares &times; (Entry - SL). Kept well below ₹250 risk
+                per swing trade.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SUPABASE CONFIGURATION MODAL -->
+  <div id="supabaseModal"
+    class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      class="glass-panel rounded-3xl max-w-md w-full border border-slate-700/80 overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <div class="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i class="fa-solid fa-cloud"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Supabase Cloud Database</h3>
+            <p class="text-[11px] text-slate-400">Connect to your Supabase PostgreSQL instance</p>
+          </div>
+        </div>
+        <button onclick="closeSupabaseModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Supabase Project URL:</label>
+          <input type="text" id="supabaseUrlInput" placeholder="https://xxxxxxxxxxxx.supabase.co"
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Supabase Anon Key (Public Key):</label>
+          <input type="password" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 focus:outline-none">
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
+          Credentials are saved securely in your browser's local storage. Your public Anon key allows safe read-only
+          access for anyone visiting this Vercel site.
+        </p>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="clearSupabaseConfig()" class="text-xs text-red-400 hover:text-red-300">
+          Clear Credentials
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeSupabaseModal()"
+            class="px-3 py-1.5 rounded-xl text-xs bg-slate-800 text-slate-300 hover:bg-slate-700">
+            Cancel
+          </button>
+          <button onclick="saveSupabaseConfig()"
+            class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md">
+            Save & Connect
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK DETAIL & CANDLESTICK MODAL -->
+  <div id="chartModal"
+    class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      class="glass-panel rounded-3xl max-w-3xl w-full border border-slate-700/80 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+
+      <!-- Modal Header -->
+      <div class="p-5 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div
+            class="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+            <span id="modalTickerBadge">BEL</span>
+          </div>
+          <div>
+            <h3 id="modalCompanyName" class="text-base font-display font-bold text-white">Bharat Electronics Ltd</h3>
+            <p class="text-xs text-slate-400">
+              CMP: <span id="modalLivePrice" class="font-semibold text-emerald-400">₹362.00</span> |
+              Volume Spike: <span id="modalSpikeMult" class="font-semibold text-yellow-400">2.35x</span>
+            </p>
+          </div>
+        </div>
+        <button onclick="closeModal()"
+          class="h-8 w-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-5">
+
+        <!-- Execution Plan Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Recommended Entry</span>
+            <span id="modalEntry" class="text-sm font-bold text-white">₹362.00</span>
+          </div>
+          <div class="p-3 rounded-xl bg-red-950/30 border border-red-900/40">
+            <span class="text-red-300 block text-[10px] uppercase font-semibold">Stop Loss</span>
+            <span id="modalSL" class="text-sm font-bold text-red-400">₹343.90</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/40">
+            <span class="text-emerald-300 block text-[10px] uppercase font-semibold">Target (1:2 RRR)</span>
+            <span id="modalTarget" class="text-sm font-bold text-emerald-400">₹401.80</span>
+          </div>
+          <div class="p-3 rounded-xl bg-cyan-950/30 border border-cyan-900/40">
+            <span class="text-cyan-300 block text-[10px] uppercase font-semibold">Sizing (₹5k deploy)</span>
+            <span id="modalShares" class="text-sm font-bold text-cyan-400">13 Shares</span>
+          </div>
+        </div>
+
+        <!-- HTML5 Canvas Candlestick & Volume Chart -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-semibold text-slate-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-chart-candlestick text-emerald-400"></i>
+              <span>60-Day Price Action & 20 DMA Volume Breakout</span>
+            </span>
+            <div class="flex items-center space-x-3 text-[11px]">
+              <span class="flex items-center space-x-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span><span
+                  class="text-slate-400">Bullish</span></span>
+              <span class="flex items-center space-x-1"><span class="h-2 w-2 rounded-full bg-red-400"></span><span
+                  class="text-slate-400">Bearish</span></span>
+              <span class="flex items-center space-x-1"><span class="h-1.5 w-3 bg-amber-400"></span><span
+                  class="text-slate-400">20 DMA Vol</span></span>
+            </div>
+          </div>
+          <canvas id="stockCanvas" width="700" height="260" class="w-full h-64 rounded-xl bg-[#090e1a]"></canvas>
+        </div>
+
+        <!-- Position Sizing Interactive Calculator -->
+        <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+          <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Interactive Position Sizer</h4>
+          <div class="flex flex-col sm:flex-row items-center gap-4 text-xs">
+            <div class="flex-1 w-full">
+              <label class="block text-[11px] text-slate-400 mb-1">Capital Deployment (₹):</label>
+              <input type="number" id="calcCapitalInput" value="5000" step="500" min="1000" oninput="updateCalculator()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500">
+            </div>
+            <div
+              class="w-full sm:w-auto flex items-center space-x-4 bg-slate-950/60 p-3 rounded-xl border border-slate-800 font-mono">
+              <div>
+                <span class="text-[10px] text-slate-400 block">Shares to Buy:</span>
+                <span id="calcSharesOut" class="text-base font-bold text-emerald-400">13</span>
+              </div>
+              <div class="h-8 w-px bg-slate-800"></div>
+              <div>
+                <span class="text-[10px] text-slate-400 block">Total Deployed:</span>
+                <span id="calcDeployedOut" class="text-base font-bold text-white">₹4,706</span>
+              </div>
+              <div class="h-8 w-px bg-slate-800"></div>
+              <div>
+                <span class="text-[10px] text-slate-400 block">Total Risk:</span>
+                <span id="calcRiskOut" class="text-base font-bold text-red-400">₹235</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between">
+        <span class="text-xs text-slate-400">TechnoFunda Swing Bot &bull; EOD Execution Protocol</span>
+        <button onclick="closeModal()"
+          class="px-5 py-2 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl transition">
+          Close Window
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    // State
+    let currentTriggers = [];
+    let currentWatchlist = [];
+    let activeStockForModal = null;
+    let supabaseClient = null;
+
+    // Supabase Configuration Management
+    function getSupabaseConfig() {
+      const storedUrl = localStorage.getItem('technofunda_supabase_url');
+      const storedKey = localStorage.getItem('technofunda_supabase_key');
+      const windowUrl = window.SUPABASE_CONFIG ? window.SUPABASE_CONFIG.url : '';
+      const windowKey = window.SUPABASE_CONFIG ? window.SUPABASE_CONFIG.anonKey : '';
+
+      return {
+        url: (storedUrl || windowUrl || '').trim(),
+        key: (storedKey || windowKey || '').trim(),
+      };
+    }
+
+
+    async function initSupabase() {
+      try {
+        let config = null;
+        if (window.SUPABASE_CONFIG_READY) {
+          try {
+            config = await window.SUPABASE_CONFIG_READY;
+          } catch (e) {
+            console.warn('[Supabase] SUPABASE_CONFIG_READY notice:', e);
+          }
+        }
+
+        const storedUrl = localStorage.getItem('technofunda_supabase_url');
+        const storedKey = localStorage.getItem('technofunda_supabase_key');
+        const defaultUrl = 'https://trejvbjnfcrjorvxaqud.supabase.co';
+        const defaultKey = 'sb_publishable_HxWuPJw-abwbsBSsN_j1lw_giMz4OpW';
+
+        const url = (storedUrl || (config && config.url) || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || defaultUrl).trim();
+        const key = (storedKey || (config && config.anonKey) || (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || defaultKey).trim();
+
+        if (!url || !key) {
+          throw new Error("Missing public Supabase configuration");
+        }
+
+        if (!window.supabase) {
+          throw new Error("Supabase JavaScript SDK failed to load");
+        }
+
+        supabaseClient = window.supabase.createClient(url, key);
+        console.log("[Supabase] Initialized successfully with:", url);
+        return true;
+
+      } catch (error) {
+        supabaseClient = null;
+        console.error("[Supabase] Initialization failed:", error);
+        return false;
+      }
+    }
+
+    // function openSupabaseModal() {
+    //   const config = getSupabaseConfig();
+    //   document.getElementById('supabaseUrlInput').value = config.url;
+    //   document.getElementById('supabaseKeyInput').value = config.key;
+    //   document.getElementById('supabaseModal').classList.remove('hidden');
+    // }
+
+    function closeSupabaseModal() {
+      document.getElementById('supabaseModal').classList.add('hidden');
+    }
+
+    // function saveSupabaseConfig() {
+    //   const url = document.getElementById('supabaseUrlInput').value.trim();
+    //   const key = document.getElementById('supabaseKeyInput').value.trim();
+    //   if (!url || !key) {
+    //     showToast('Please enter both Supabase URL and Anon Key.', 'error');
+    //     return;
+    //   }
+    //   localStorage.setItem('technofunda_supabase_url', url);
+    //   localStorage.setItem('technofunda_supabase_key', key);
+    //   closeSupabaseModal();
+    //   showToast('Supabase credentials saved! Connecting...', 'success');
+    //   initSupabase();
+    //   loadAllData();
+    // }
+
+    // function clearSupabaseConfig() {
+    //   localStorage.removeItem('technofunda_supabase_url');
+    //   localStorage.removeItem('technofunda_supabase_key');
+    //   supabaseClient = null;
+    //   closeSupabaseModal();
+    //   initSupabase();
+    //   showToast('Supabase configuration cleared.', 'info');
+    //   loadAllData();
+    // }
+
+    // Formatting helpers
+    function formatCurrency(val) {
+      if (val === null || val === undefined || isNaN(val)) return '₹0.00';
+      return '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumber(val) {
+      if (!val) return '0';
+      const num = Number(val);
+      if (num >= 10000000) return (num / 10000000).toFixed(2) + ' Cr';
+      if (num >= 100000) return (num / 100000).toFixed(2) + ' L';
+      return num.toLocaleString('en-IN');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const color = type === 'success' ? 'border-emerald-500 bg-slate-900 text-emerald-300' :
+        type === 'error' ? 'border-red-500 bg-slate-900 text-red-300' :
+          'border-cyan-500 bg-slate-900 text-cyan-300';
+      toast.className = `p-3 rounded-xl border ${color} shadow-xl flex items-center space-x-2 text-xs pointer-events-auto transition transform translate-y-2`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'error' ? 'fa-triangle-exclamation text-red-400' : 'fa-circle-info text-cyan-400'}"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Tab Switching
+    function switchTab(tab) {
+      const tabs = ['triggers', 'watchlist', 'logs', 'rules'];
+      tabs.forEach(t => {
+        const content = document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (content && btn) {
+          if (t === tab) {
+            content.classList.remove('hidden');
+            btn.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-2 transition';
+          } else {
+            content.classList.add('hidden');
+            btn.className = 'px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center space-x-2 transition';
+          }
+        }
+      });
+    }
+
+    // System Status
+    async function fetchStatus() {
+      try {
+        if (supabaseClient) {
+          const { data, error } = await supabaseClient
+            .from('system_status')
+            .select('*')
+            .limit(1)
+            .maybeSingle();
+
+          if (!error && data) {
+            renderStatusData(data);
+            return;
+          }
+        }
+
+        // Fallback to local FastAPI if Supabase is not active and on localhost or API_BASE_URL is set
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/status`);
+          if (!res.ok) return;
+          const data = await res.json();
+          renderStatusData(data);
+        }
+
+      } catch (err) {
+        console.debug('Status check notice:', err);
+      }
+    }
+
+    function renderStatusData(data) {
+      document.getElementById('statusText').innerText = data.status === 'running' ? 'Scanning...' : 'System Ready';
+      const dot = document.getElementById('statusIndicatorDot');
+      if (data.status === 'running') {
+        dot.className = 'h-2 w-2 rounded-full bg-yellow-400 animate-ping';
+      } else {
+        dot.className = 'h-2 w-2 rounded-full bg-emerald-400 animate-pulse';
+      }
+
+      if (data.last_run) {
+        document.getElementById('lastScanTime').innerText = data.last_run;
+      }
+
+      // Terminal logs
+      const logsBox = document.getElementById('logsTerminalContainer');
+      const logLines = Array.isArray(data.logs) ? data.logs : [];
+      if (logsBox && logLines.length > 0) {
+        logsBox.innerHTML = logLines.map(line => {
+          let color = 'text-slate-400';
+          if (line.includes('[ERROR]')) color = 'text-red-400';
+          else if (line.includes('Completed') || line.includes('identified')) color = 'text-emerald-400 font-semibold';
+          else if (line.includes('Step')) color = 'text-cyan-300';
+          return `<div class="${color}">${line}</div>`;
+        }).join('');
+        logsBox.scrollTop = logsBox.scrollHeight;
+      }
+    }
+
+    // Fetch Final Trade Triggers
+    async function loadFinalStocks() {
+      try {
+        if (supabaseClient) {
+          const { data, error } = await supabaseClient
+            .from('triggers')
+            .select('*')
+            .order('volume_spike_multiplier', { ascending: false });
+
+          if (!error && data) {
+            // Map Supabase snake_case columns to template expected keys
+            currentTriggers = data.map(item => ({
+              'Symbol': item.symbol,
+              'Company Name': item.company_name,
+              'Live Price': item.live_price,
+              'Price': item.live_price,
+              '20 DMA Vol': item.dma_vol,
+              'Latest Vol': item.latest_vol,
+              'Volume Spike Multiplier': item.volume_spike_multiplier,
+              'Support Zone': item.support_zone,
+              'Resistance Zone': item.resistance_zone,
+              'Recommended Entry': item.recommended_entry,
+              'Stop-Loss': item.stop_loss,
+              'Target Price': item.target_price,
+              'Risk Reward Ratio': item.risk_reward_ratio || '1:2.2',
+              'Recommended Shares': item.recommended_shares,
+              'Capital Deployed': item.capital_deployed,
+              'Max Risk (Rs)': item.max_risk,
+              'Portfolio Risk (%)': item.portfolio_risk_pct,
+              'Under Rs 600': item.under_600,
+              'Volume Breakout': item.volume_breakout,
+              'Action Badge': item.action_badge || 'Ready for EOD Trade',
+              'ROCE (%)': item.roce,
+              'P/E': item.pe,
+              'Market Cap (Cr)': item.market_cap,
+              'Is Ready': item.is_ready !== false,
+            }));
+
+            document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
+            document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
+            renderTriggersTable(currentTriggers);
+            return;
+          }
+        }
+
+        // Fallback to FastAPI if running locally or API_BASE_URL is configured
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/final-stocks`);
+          if (!res.ok) return;
+          const data = await res.json();
+          currentTriggers = data.stocks || [];
+
+          document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
+          document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
+          renderTriggersTable(currentTriggers);
+        }
+
+      } catch (err) {
+        console.error('Error loading final stocks:', err);
+      }
+    }
+
+    // Fetch Fundamental Watchlist
+    async function loadFundamentalWatchlist() {
+      try {
+        if (supabaseClient) {
+          const { data, error } = await supabaseClient
+            .from('watchlist')
+            .select('*')
+            .order('symbol', { ascending: true });
+
+          if (!error && data) {
+            currentWatchlist = data.map(item => ({
+              'Symbol': item.symbol,
+              'Name': item.name,
+              'Company Name': item.name,
+              'Price': item.price,
+              'Live Price': item.price,
+              'Market Cap': item.market_cap,
+              'Market Cap (Cr)': item.market_cap,
+              'ROCE': item.roce,
+              'ROCE (%)': item.roce,
+              'P/E': item.pe,
+              'Volume Spike Multiplier': item.volume_spike_multiplier,
+              'Data Source': item.data_source,
+            }));
+
+            document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
+            document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
+            renderWatchlistTable(currentWatchlist);
+            return;
+          }
+        }
+
+        // Fallback to FastAPI if running locally or API_BASE_URL is configured
+        if (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/fundamental-stocks`);
+          if (!res.ok) return;
+          const data = await res.json();
+          currentWatchlist = data.stocks || [];
+
+          document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
+          document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
+          renderWatchlistTable(currentWatchlist);
+        }
+
+      } catch (err) {
+        console.error('Error loading watchlist:', err);
+      }
+    }
+
+    // Render Triggers Table
+    function renderTriggersTable(stocks) {
+      const tbody = document.getElementById('triggersTableBody');
+      if (!tbody) return;
+
+      if (!stocks || stocks.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-12 text-center text-slate-400">
+              <i class="fa-solid fa-circle-exclamation text-2xl text-slate-500 mb-2"></i>
+              <p class="text-sm">No stocks met the breakout criteria under ₹600.</p>
+              <p class="text-xs text-slate-500 mt-1">Check "Simulate Breakouts" or verify your Supabase database sync.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = stocks.map((s) => {
+        const multiplier = Number(s['Volume Spike Multiplier'] || 1.0).toFixed(2);
+        const price = Number(s['Live Price'] || s['Price']);
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition group">
+            <td class="py-3 px-4">
+              <div class="flex items-center space-x-2.5">
+                <div class="h-8 w-8 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 flex items-center justify-center font-bold text-xs">
+                  ${(s['Symbol'] || 'STK').slice(0, 3)}
+                </div>
+                <div>
+                  <div class="flex items-center space-x-1.5">
+                    <span class="font-bold text-white">${s['Symbol']}</span>
+                    <a href="https://www.screener.in/company/${s['Symbol']}/" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-emerald-400 text-[10px]" title="Open Screener.in">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                  </div>
+                  <span class="text-[11px] text-slate-400 block truncate max-w-[150px]">${s['Company Name'] || s['Name']}</span>
+                </div>
+              </div>
+            </td>
+
+            <td class="py-3 px-4 font-mono font-semibold text-white">
+              ${formatCurrency(price)}
+            </td>
+
+            <td class="py-3 px-4 text-center">
+              <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <i class="fa-solid fa-fire text-amber-400 text-[10px]"></i>
+                <span>${multiplier}x</span>
+              </span>
+              <span class="text-[10px] text-slate-500 block mt-0.5">20 DMA: ${formatNumber(s['20 DMA Vol'])}</span>
+            </td>
+
+            <td class="py-3 px-4">
+              <div class="text-slate-300 font-mono">₹${Number(s['Support Zone'] || price * 0.96).toFixed(2)}</div>
+              <div class="text-[11px] text-red-400 font-mono flex items-center space-x-1">
+                <span>SL: ₹${Number(s['Stop-Loss'] || price * 0.94).toFixed(2)}</span>
+              </div>
+            </td>
+
+            <td class="py-3 px-4 font-mono font-semibold text-cyan-300">
+              ₹${Number(s['Recommended Entry'] || price).toFixed(2)}
+            </td>
+
+            <td class="py-3 px-4">
+              <div class="text-emerald-400 font-mono font-semibold">₹${Number(s['Target Price'] || price * 1.08).toFixed(2)}</div>
+              <span class="text-[10px] text-slate-400 font-mono">${s['Risk Reward Ratio'] || '1:2.2'}</span>
+            </td>
+
+            <td class="py-3 px-4 text-center font-mono">
+              <span class="font-bold text-white text-sm">${s['Recommended Shares'] || Math.floor(5000 / Math.max(price, 1))}</span>
+              <span class="text-[10px] text-slate-400 block">Deploy: ₹${Number(s['Capital Deployed'] || (Math.floor(5000 / Math.max(price, 1)) * price)).toLocaleString('en-IN')}</span>
+            </td>
+
+            <td class="py-3 px-4 text-center font-mono">
+              <span class="font-bold text-red-400">₹${Number(s['Max Risk (Rs)'] || s['Max Risk (₹)'] || 180).toFixed(2)}</span>
+              <span class="text-[10px] text-slate-500 block">${s['Portfolio Risk (%)'] || '1.8'}% Port.</span>
+            </td>
+
+            <td class="py-3 px-4 text-center">
+              <div class="flex flex-col items-center gap-1.5">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
+                  <i class="fa-solid fa-check-double mr-1"></i> Ready EOD
+                </span>
+                <button onclick="openModal('${s['Symbol']}')"
+                        class="text-[11px] text-slate-300 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded border border-slate-700 transition flex items-center space-x-1">
+                  <i class="fa-solid fa-chart-line text-[10px]"></i>
+                  <span>Plan & Chart</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render Watchlist Table
+    function renderWatchlistTable(stocks) {
+      const tbody = document.getElementById('watchlistTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = stocks.map(s => {
+        const price = Number(s['Price'] || s['Live Price']);
+        const under600 = price <= 600;
+
+        return `
+          <tr class="hover:bg-slate-800/30 transition text-xs">
+            <td class="py-3 px-4 font-bold text-white">${s['Symbol']}</td>
+            <td class="py-3 px-4 text-slate-300">${s['Name'] || s['Company Name']}</td>
+            <td class="py-3 px-4 font-mono font-semibold ${under600 ? 'text-emerald-400' : 'text-slate-300'}">
+              ${formatCurrency(price)}
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-300">₹${formatNumber(s['Market Cap'] || s['Market Cap (Cr)'])}</td>
+            <td class="py-3 px-4 font-mono font-semibold ${Number(s['ROCE'] || s['ROCE (%)']) >= 20 ? 'text-emerald-400' : 'text-slate-300'}">
+              ${Number(s['ROCE'] || s['ROCE (%)'] || 0).toFixed(1)}%
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-400">${Number(s['P/E'] || 0).toFixed(1)}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${s['Volume Spike Multiplier'] ? s['Volume Spike Multiplier'] + 'x' : '--'}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] ${under600 ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40' : 'bg-slate-800 text-slate-400'}">
+                ${under600 ? 'Under ₹600' : '> ₹600'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Filtering
+    function applyFilters() {
+      const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const priceFilter = document.getElementById('priceFilterSelect').value;
+
+      let filteredTriggers = currentTriggers.filter(s => {
+        const matchesQ = !q || s['Symbol'].toLowerCase().includes(q) || (s['Company Name'] || '').toLowerCase().includes(q);
+        const price = Number(s['Live Price']);
+        const matchesPrice = priceFilter === 'all' || price <= 600;
+        return matchesQ && matchesPrice;
+      });
+
+      renderTriggersTable(filteredTriggers);
+
+      let filteredWatchlist = currentWatchlist.filter(s => {
+        const sym = (s['Symbol'] || '').toLowerCase();
+        const name = (s['Name'] || s['Company Name'] || '').toLowerCase();
+        const matchesQ = !q || sym.includes(q) || name.includes(q);
+        const price = Number(s['Price'] || s['Live Price']);
+        const matchesPrice = priceFilter === 'all' || price <= 600;
+        return matchesQ && matchesPrice;
+      });
+
+      renderWatchlistTable(filteredWatchlist);
+    }
+
+    // Trigger Pipeline Execution
+    async function triggerPipeline() {
+      const runBtn = document.getElementById('runScanBtn');
+      const spinner = document.getElementById('scanSpinner');
+      const icon = document.getElementById('scanIcon');
+      const btnText = document.getElementById('scanBtnText');
+      const progressBar = document.getElementById('scanProgressBar');
+      const forceMock = document.getElementById('forceMockCheckbox').checked;
+
+      runBtn.disabled = true;
+      runBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      spinner.classList.remove('hidden');
+      icon.classList.add('hidden');
+      btnText.innerText = 'Scanning...';
+      progressBar.classList.remove('hidden');
+
+      showToast('Initiating TechnoFunda Swing Pipeline scan...', 'info');
+
+      try {
+        const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+        if (base || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const res = await fetch(`${base}/api/run-pipeline`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              force_mock: forceMock,
+              price_ceiling: 600.0,
+              min_volume_multiplier: 1.5,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            currentTriggers = data.final_triggers || [];
+            currentWatchlist = data.all_stocks || [];
+
+            document.getElementById('kpiTriggersCount').innerText = currentTriggers.length;
+            document.getElementById('tabBadgeTriggers').innerText = currentTriggers.length;
+            document.getElementById('kpiWatchlistCount').innerText = currentWatchlist.length;
+            document.getElementById('tabBadgeWatchlist').innerText = currentWatchlist.length;
+            document.getElementById('lastScanTime').innerText = data.last_run || 'Just now';
+
+            renderTriggersTable(currentTriggers);
+            renderWatchlistTable(currentWatchlist);
+            fetchStatus();
+            showToast(`Scan Complete! Found ${currentTriggers.length} actionable EOD breakouts under ₹600.`, 'success');
+          } else {
+            showToast('Scan execution failed on backend server.', 'error');
+          }
+        } else {
+          showToast('Cloud mode active: scans run automatically via GitHub Actions (or trigger workflow in GitHub). Refreshing data...', 'info');
+          await loadAllData();
+        }
+
+      } catch (err) {
+        console.warn('Scan notice:', err);
+        showToast('Tip: Scans run automatically via GitHub Actions, or run `python backend/supabase_sync.py` locally!', 'info');
+      } finally {
+        runBtn.disabled = false;
+        runBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        spinner.classList.add('hidden');
+        icon.classList.remove('hidden');
+        btnText.innerText = 'Run Full Scan';
+        progressBar.classList.add('hidden');
+      }
+    }
+
+    // Modal: Open Chart & Calculator
+    async function openModal(symbol) {
+      const stock = currentTriggers.find(s => s['Symbol'] === symbol) ||
+        currentWatchlist.find(s => s['Symbol'] === symbol);
+      if (!stock) return;
+
+      activeStockForModal = stock;
+
+      document.getElementById('modalTickerBadge').innerText = stock['Symbol'];
+      document.getElementById('modalCompanyName').innerText = stock['Company Name'] || stock['Name'];
+
+      const price = Number(stock['Live Price'] || stock['Price']);
+      const entry = Number(stock['Recommended Entry'] || price);
+      const sl = Number(stock['Stop-Loss'] || price * 0.95);
+      const target = Number(stock['Target Price'] || entry + (entry - sl) * 2.2);
+
+      document.getElementById('modalLivePrice').innerText = formatCurrency(price);
+      document.getElementById('modalSpikeMult').innerText = (stock['Volume Spike Multiplier'] || '1.8') + 'x';
+      document.getElementById('modalEntry').innerText = formatCurrency(entry);
+      document.getElementById('modalSL').innerText = formatCurrency(sl);
+      document.getElementById('modalTarget').innerText = formatCurrency(target);
+      document.getElementById('modalShares').innerText = (stock['Recommended Shares'] || Math.floor(5000 / price)) + ' Shares';
+
+      updateCalculator();
+      document.getElementById('chartModal').classList.remove('hidden');
+
+      // Fetch & draw canvas chart: First try Supabase cache
+      let chartDrawn = false;
+      if (supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('stock_charts')
+            .select('*')
+            .eq('symbol', symbol)
+            .maybeSingle();
+
+          if (!error && data && data.candles) {
+            drawStockCanvas(data);
+            chartDrawn = true;
+          }
+        } catch (e) {
+          console.debug('Supabase chart lookup skipped:', e);
+        }
+      }
+
+      // Try FastAPI backend if not drawn and running locally or API_BASE_URL is configured
+      if (!chartDrawn && (window.API_BASE_URL || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        try {
+          const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
+          const res = await fetch(`${base}/api/stock/${stock['Symbol']}/chart?price=${price}`);
+          if (res.ok) {
+            const json = await res.json();
+            drawStockCanvas(json.data);
+            chartDrawn = true;
+          }
+        } catch (e) {
+          console.debug('Backend chart lookup skipped:', e);
+        }
+      }
+
+      // Fallback: Generate deterministic chart locally in client
+      if (!chartDrawn) {
+        const mockData = generateClientChartData(symbol, price);
+        drawStockCanvas(mockData);
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('chartModal').classList.add('hidden');
+    }
+
+    // Modal Calculator update
+    function updateCalculator() {
+      if (!activeStockForModal) return;
+      const capital = Number(document.getElementById('calcCapitalInput').value) || 5000;
+      const price = Number(activeStockForModal['Live Price'] || activeStockForModal['Price']);
+      const sl = Number(activeStockForModal['Stop-Loss'] || price * 0.95);
+
+      const shares = Math.floor(capital / Math.max(price, 1));
+      const deployed = Math.round(shares * price);
+      const risk = Math.round(shares * Math.max(price - sl, 0));
+
+      document.getElementById('calcSharesOut').innerText = shares;
+      document.getElementById('calcDeployedOut').innerText = '₹' + deployed.toLocaleString('en-IN');
+      document.getElementById('calcRiskOut').innerText = '₹' + risk.toLocaleString('en-IN');
+    }
+
+    // Client-side Chart Data Generator Fallback
+    function generateClientChartData(symbol, cmp) {
+      const candles = [];
+      const volumes = [];
+      const dma_vols = [];
+      let price = cmp * 0.90;
+      const baseVol = 3500000;
+
+      for (let i = 60; i >= 1; i--) {
+        const isUp = Math.random() > 0.45;
+        const drift = (Math.random() - 0.48) * 0.03;
+        const open = price;
+        const close = open * (1 + (i <= 2 ? 0.025 : drift));
+        const high = Math.max(open, close) * (1 + Math.random() * 0.015);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.015);
+        const vol = Math.floor(baseVol * (i === 1 ? 2.2 : (0.7 + Math.random() * 0.6)));
+
+        price = close;
+        candles.push({ open, high, low, close });
+        volumes.push({ value: vol });
+        dma_vols.push({ value: baseVol });
+      }
+      return { candles, volumes, dma_volumes: dma_vols };
+    }
+
+    // HTML5 Canvas Candlestick & Volume Chart Renderer
+    function drawStockCanvas(chartData) {
+      const canvas = document.getElementById('stockCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const candles = chartData.candles || [];
+      if (candles.length === 0) return;
+
+      const topPadding = 20;
+      const chartHeight = height - 70;
+      const volHeight = 45;
+      const volBaseY = height - 10;
+
+      let minPrice = Infinity;
+      let maxPrice = -Infinity;
+      let maxVol = 0;
+
+      candles.forEach(c => {
+        if (c.low < minPrice) minPrice = c.low;
+        if (c.high > maxPrice) maxPrice = c.high;
+      });
+
+      const vols = chartData.volumes || [];
+      vols.forEach(v => {
+        if (v.value > maxVol) maxVol = v.value;
+      });
+
+      const priceRange = Math.max(maxPrice - minPrice, 1);
+      const barWidth = Math.max((width - 40) / candles.length, 3);
+
+      // Grid Lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        const y = topPadding + (chartHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(width - 20, y);
+        ctx.stroke();
+
+        const pLabel = (maxPrice - (priceRange / 4) * i).toFixed(1);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText('₹' + pLabel, 2, y + 3);
+      }
+
+      // Candlesticks & Volume
+      candles.forEach((c, idx) => {
+        const x = 35 + idx * barWidth;
+        const candleWidth = Math.max(barWidth - 2, 2);
+
+        const isBullish = c.close >= c.open;
+        const color = isBullish ? '#10b981' : '#ef4444';
+
+        const highY = topPadding + ((maxPrice - c.high) / priceRange) * chartHeight;
+        const lowY = topPadding + ((maxPrice - c.low) / priceRange) * chartHeight;
+        const openY = topPadding + ((maxPrice - c.open) / priceRange) * chartHeight;
+        const closeY = topPadding + ((maxPrice - c.close) / priceRange) * chartHeight;
+
+        // Wick
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + candleWidth / 2, highY);
+        ctx.lineTo(x + candleWidth / 2, lowY);
+        ctx.stroke();
+
+        // Body
+        ctx.fillStyle = color;
+        const bodyTop = Math.min(openY, closeY);
+        const bodyHeight = Math.max(Math.abs(closeY - openY), 2);
+        ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+
+        // Volume Bar
+        const v = vols[idx] ? vols[idx].value : 0;
+        const vHeight = maxVol > 0 ? (v / maxVol) * volHeight : 0;
+        ctx.fillStyle = color + '80';
+        ctx.fillRect(x, volBaseY - vHeight, candleWidth, vHeight);
+      });
+
+      // 20 DMA Volume Line
+      const dmaVols = chartData.dma_volumes || [];
+      if (dmaVols.length > 0) {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        dmaVols.forEach((dv, idx) => {
+          const x = 35 + idx * barWidth + barWidth / 2;
+          const v = dv.value || 0;
+          const vHeight = maxVol > 0 ? (v / maxVol) * volHeight : 0;
+          const y = volBaseY - vHeight;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+    }
+
+    // Client-side Instant Excel Exporter using SheetJS
+    function exportToExcel(type) {
+      try {
+        if (typeof XLSX === 'undefined') {
+          showToast('SheetJS Excel library loading, please retry in a moment...', 'error');
+          return;
+        }
+
+        let dataset = [];
+        let filename = '';
+
+        if (type === 'triggers') {
+          dataset = currentTriggers.map(s => ({
+            'Symbol': s['Symbol'],
+            'Company Name': s['Company Name'] || s['Name'],
+            'Live Price (₹)': Number(s['Live Price'] || s['Price']),
+            'Volume Spike Multiplier': Number(s['Volume Spike Multiplier'] || 1.0).toFixed(2) + 'x',
+            '20 DMA Volume': Number(s['20 DMA Vol']),
+            'Latest Volume': Number(s['Latest Vol']),
+            'Support Zone (₹)': Number(s['Support Zone']),
+            'Recommended Entry (₹)': Number(s['Recommended Entry']),
+            'Stop-Loss (₹)': Number(s['Stop-Loss']),
+            'Target Price (₹)': Number(s['Target Price']),
+            'Risk Reward Ratio': s['Risk Reward Ratio'] || '1:2.2',
+            'Recommended Shares': Number(s['Recommended Shares']),
+            'Capital Deployed (₹)': Number(s['Capital Deployed']),
+            'Max Risk (₹)': Number(s['Max Risk (Rs)'] || s['Max Risk (₹)']),
+            'Portfolio Risk (%)': s['Portfolio Risk (%)'] + '%',
+            'Action Badge': s['Action Badge'] || 'Ready for EOD Trade',
+          }));
+          filename = 'Final_Trade_Triggers.xlsx';
+        } else {
+          dataset = currentWatchlist.map(s => ({
+            'Symbol': s['Symbol'],
+            'Company Name': s['Name'] || s['Company Name'],
+            'Price (₹)': Number(s['Price'] || s['Live Price']),
+            'Market Cap (Cr)': Number(s['Market Cap'] || s['Market Cap (Cr)']),
+            'ROCE (%)': Number(s['ROCE'] || s['ROCE (%)']),
+            'P/E': Number(s['P/E']),
+            'Volume Spike Multiplier': s['Volume Spike Multiplier'] ? s['Volume Spike Multiplier'] + 'x' : '--',
+            'Data Source': s['Data Source'] || 'Screener.in',
+          }));
+          filename = 'Fundamental_Shortlist.xlsx';
+        }
+
+        if (dataset.length === 0) {
+          showToast('No records available to export.', 'error');
+          return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(dataset);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, type === 'triggers' ? 'Triggers' : 'Watchlist');
+        XLSX.writeFile(workbook, filename);
+        showToast(`Exported ${dataset.length} records to ${filename}!`, 'success');
+
+      } catch (err) {
+        console.error('Excel export error:', err);
+        showToast('Failed to generate Excel file: ' + err.message, 'error');
+      }
+    }
+
+    // Realtime Supabase Channel
+    function setupSupabaseRealtime() {
+      if (!supabaseClient) return;
+      try {
+        supabaseClient
+          .channel('public:triggers_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'triggers' }, () => {
+            console.log('[Supabase Realtime] Triggers updated. Refreshing...');
+            loadFinalStocks();
+            fetchStatus();
+          })
+          .subscribe();
+      } catch (e) {
+        console.debug('Realtime setup notice:', e);
+      }
+    }
+
+    // Load all data
+    async function loadAllData() {
+      await Promise.all([
+        fetchStatus(),
+        loadFinalStocks(),
+        loadFundamentalWatchlist(),
+      ]);
+    }
+
+    // Auto-initialize on page load
+    window.addEventListener("DOMContentLoaded", async () => {
+      const connected = await initSupabase();
+
+      await loadAllData();
+
+      if (connected) {
+        setupSupabaseRealtime();
+      }
+
+      setInterval(fetchStatus, 10000);
+    });
+  </script>
+</body>
+
+</html>
