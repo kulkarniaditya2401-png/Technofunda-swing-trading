@@ -93,21 +93,41 @@ class DirectSupabaseTableQuery:
     def __init__(self, base_url: str, headers: Dict[str, str], table_name: str):
         self.endpoint = f"{base_url}/rest/v1/{table_name}"
         self.headers = headers
+        self.method = "POST"
+        self.params = {}
+        self.data_to_upsert = None
 
     def upsert(self, data: Any):
+        self.method = "POST"
         self.data_to_upsert = data if isinstance(data, list) else [data]
         return self
 
+    def delete(self):
+        self.method = "DELETE"
+        return self
+
+    def neq(self, column: str, value: str):
+        self.params[column] = f"neq.{value}"
+        return self
+
     def execute(self):
-        resp = requests.post(
-            self.endpoint,
-            headers=self.headers,
-            json=self.data_to_upsert,
-            timeout=20,
-        )
+        if self.method == "DELETE":
+            resp = requests.delete(
+                self.endpoint,
+                headers=self.headers,
+                params=self.params,
+                timeout=20,
+            )
+        else:
+            resp = requests.post(
+                self.endpoint,
+                headers=self.headers,
+                json=self.data_to_upsert,
+                timeout=20,
+            )
         if resp.status_code not in (200, 201, 204):
-            logger.error("Supabase REST upsert failed [%s]: %s", resp.status_code, resp.text)
-            raise RuntimeError(f"Supabase upsert failed: {resp.text}")
+            logger.error("Supabase REST request failed [%s]: %s", resp.status_code, resp.text)
+            raise RuntimeError(f"Supabase request failed: {resp.text}")
         return resp
 
 
@@ -177,10 +197,11 @@ def sync_to_supabase(
 
     if watchlist_records:
         try:
-            logger.info("Upserting %d watchlist records to Supabase...", len(watchlist_records))
+            logger.info("Clearing previous watchlist and syncing %d watchlist records to Supabase...", len(watchlist_records))
+            client.table("watchlist").delete().neq("symbol", "").execute()
             client.table("watchlist").upsert(watchlist_records).execute()
         except Exception as exc:
-            logger.error("Failed to upsert watchlist to Supabase: %s", exc)
+            logger.error("Failed to sync watchlist to Supabase: %s", exc)
 
     # 2. Sync Trade Triggers
     trigger_records = []
@@ -216,12 +237,14 @@ def sync_to_supabase(
                 "updated_at": now_iso,
             })
 
-    if trigger_records:
-        try:
+    try:
+        logger.info("Clearing previous trade triggers from Supabase...")
+        client.table("triggers").delete().neq("symbol", "").execute()
+        if trigger_records:
             logger.info("Upserting %d trade triggers to Supabase...", len(trigger_records))
             client.table("triggers").upsert(trigger_records).execute()
-        except Exception as exc:
-            logger.error("Failed to upsert triggers to Supabase: %s", exc)
+    except Exception as exc:
+        logger.error("Failed to sync triggers to Supabase: %s", exc)
 
     # 3. Generate & Cache Chart Data for shortlisted triggers
     if triggers_df is not None and not triggers_df.empty:
