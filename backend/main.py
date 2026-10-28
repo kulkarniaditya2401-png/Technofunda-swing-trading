@@ -31,6 +31,13 @@ import pandas as pd
 # Add backend directory to sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+# Read local .env on development machines. Production env vars are also supported.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+except ImportError:
+    logger_warning = "python-dotenv not installed; using process environment variables"
+
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -67,6 +74,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Public frontend configuration: publishable credentials only.
+@app.get("/api/public-config")
+def public_config():
+    url = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+    public_key = (os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY") or "").strip()
+    if not url or not public_key:
+        raise HTTPException(status_code=503, detail="Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in the backend environment")
+    return {"url": url, "anonKey": public_key}
 
 # Template setup
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "frontend", "templates")
