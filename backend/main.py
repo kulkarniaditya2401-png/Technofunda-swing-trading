@@ -76,6 +76,11 @@ app.add_middleware(
 )
 
 # Public frontend configuration: publishable credentials only.
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "technofunda-backend"}
+
+
 @app.get("/api/public-config")
 def public_config():
     url = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")

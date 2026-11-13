@@ -149,13 +149,13 @@
       <!-- Right Header Actions -->
       <div class="flex items-center space-x-2 sm:space-x-3">
 
-        <!-- Supabase Cloud Connection Badge -->
-        <!-- <button onclick="openSupabaseModal()" id="supabaseStatusBadge"
-                class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-medium transition cursor-pointer"
-                title="Click to configure Supabase Cloud Database credentials">
-          <span id="supabaseIndicatorDot" class="h-2 w-2 rounded-full bg-amber-400"></span>
-          <span id="supabaseStatusText" class="text-slate-300">Supabase Setup</span>
-        </button> -->
+        <!-- Python Scanner Backend Connection Pill -->
+        <button onclick="openBackendModal()" id="backendStatusBadge"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-medium transition cursor-pointer"
+          title="Connect Live Python Scanner Backend (Render.com)">
+          <span id="backendIndicatorDot" class="h-2 w-2 rounded-full bg-amber-400"></span>
+          <span id="backendStatusText" class="text-slate-300">Scanner Setup</span>
+        </button>
 
         <!-- Live Server Status Pill -->
         <div id="statusBadge"
@@ -572,6 +572,57 @@
 
   </main>
 
+  <!-- LIVE PYTHON SCANNER BACKEND MODAL -->
+  <div id="backendModal"
+    class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      class="glass-panel rounded-3xl max-w-md w-full border border-slate-700/80 overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <div class="h-8 w-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+            <i class="fa-solid fa-server"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Live Python Scanner (Render.com)</h3>
+            <p class="text-[11px] text-slate-400">Enables on-demand live scanning from your Vercel site</p>
+          </div>
+        </div>
+        <button onclick="closeBackendModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Backend HTTPS URL (Render.com):</label>
+          <input type="text" id="backendUrlInput" placeholder="https://technofunda-backend.onrender.com"
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-cyan-500 focus:outline-none">
+        </div>
+        <div id="backendTestResult" class="text-[11px] hidden p-2.5 rounded-xl border"></div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          <i class="fa-solid fa-circle-info text-cyan-400 mr-1"></i>
+          Paste your deployed Render backend URL here. Whenever you click <strong>"Run Full Scan"</strong>, it will run the live Python Screener & technical breakout analysis on Render and update your stocks immediately!
+        </p>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+        <button onclick="clearBackendConfig()" class="text-xs text-red-400 hover:text-red-300">
+          Disconnect
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeBackendModal()"
+            class="px-3 py-1.5 rounded-xl text-xs bg-slate-800 text-slate-300 hover:bg-slate-700">
+            Cancel
+          </button>
+          <button onclick="saveAndTestBackendConfig()" id="saveBackendBtn"
+            class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md flex items-center space-x-1.5">
+            <span>Save & Connect</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SUPABASE CONFIGURATION MODAL -->
   <div id="supabaseModal"
     class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -812,6 +863,99 @@
 
     function closeSupabaseModal() {
       document.getElementById('supabaseModal').classList.add('hidden');
+    }
+
+    // Backend (Render.com) Modal & Connection Management
+    function openBackendModal() {
+      const stored = localStorage.getItem('technofunda_backend_url') || window.API_BASE_URL || '';
+      document.getElementById('backendUrlInput').value = stored;
+      const resBox = document.getElementById('backendTestResult');
+      resBox.className = 'text-[11px] hidden p-2.5 rounded-xl border';
+      resBox.innerHTML = '';
+      document.getElementById('backendModal').classList.remove('hidden');
+    }
+
+    function closeBackendModal() {
+      document.getElementById('backendModal').classList.add('hidden');
+    }
+
+    function updateBackendIndicator(connected, isTesting = false) {
+      const dot = document.getElementById('backendIndicatorDot');
+      const text = document.getElementById('backendStatusText');
+      if (!dot || !text) return;
+
+      if (isTesting) {
+        dot.className = 'h-2 w-2 rounded-full bg-cyan-400 animate-ping';
+        text.innerText = 'Connecting...';
+      } else if (connected) {
+        dot.className = 'h-2 w-2 rounded-full bg-emerald-400 animate-pulse';
+        text.innerText = 'Scanner Live';
+      } else {
+        dot.className = 'h-2 w-2 rounded-full bg-amber-400';
+        text.innerText = 'Connect Scanner';
+      }
+    }
+
+    async function checkBackendHealth(url) {
+      const clean = (url || '').replace(/\/+$/, '');
+      if (!clean) return false;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`${clean}/health`, { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timeoutId);
+        return res.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function saveAndTestBackendConfig() {
+      const rawUrl = document.getElementById('backendUrlInput').value.trim();
+      const testBox = document.getElementById('backendTestResult');
+      const cleanUrl = rawUrl.replace(/\/+$/, '');
+
+      if (!cleanUrl) {
+        showToast('Please enter your backend URL (e.g. https://technofunda-backend.onrender.com)', 'error');
+        return;
+      }
+
+      updateBackendIndicator(false, true);
+      testBox.className = 'text-[11px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-cyan-300 flex items-center space-x-2';
+      testBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Pinging ${cleanUrl}/health...</span>';
+      testBox.classList.remove('hidden');
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // Allow Render free tier cold-start wake up
+        const res = await fetch(`${cleanUrl}/health`, { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          localStorage.setItem('technofunda_backend_url', cleanUrl);
+          window.API_BASE_URL = cleanUrl;
+          testBox.className = 'text-[11px] p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 flex items-center space-x-2';
+          testBox.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i><span>Connected successfully! Python Scanner engine is live.</span>';
+          updateBackendIndicator(true);
+          showToast('Connected to live Python Scanner!', 'success');
+          setTimeout(closeBackendModal, 1200);
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch (err) {
+        updateBackendIndicator(false);
+        testBox.className = 'text-[11px] p-2.5 rounded-xl bg-red-950/80 border border-red-800 text-red-300 flex items-center space-x-2';
+        testBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400"></i><span>Could not reach backend (${err.message}). If Render was spinning up, wait 30 seconds and retry.</span>`;
+        showToast('Failed to connect to backend.', 'error');
+      }
+    }
+
+    function clearBackendConfig() {
+      localStorage.removeItem('technofunda_backend_url');
+      window.API_BASE_URL = '';
+      updateBackendIndicator(false);
+      closeBackendModal();
+      showToast('Backend disconnected. Reverted to database view.', 'info');
     }
 
     // function saveSupabaseConfig() {
@@ -1227,12 +1371,16 @@
       btnText.innerText = 'Scanning...';
       progressBar.classList.remove('hidden');
 
-      showToast('Initiating TechnoFunda Swing Pipeline scan...', 'info');
-
       try {
-        const base = (window.API_BASE_URL || '').replace(/\/+$/, '');
-        if (base || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          const res = await fetch(`${base}/api/run-pipeline`, {
+        const base = (window.API_BASE_URL || localStorage.getItem('technofunda_backend_url') || '').replace(/\/+$/, '');
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if (base || isLocal) {
+          const endpoint = base ? `${base}/api/run-pipeline` : '/api/run-pipeline';
+          showToast('Triggering live Python scanner (~45s)...', 'info');
+          btnText.innerText = 'Scanning Live (~45s)...';
+
+          const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1261,13 +1409,14 @@
             showToast('Scan execution failed on backend server.', 'error');
           }
         } else {
-          showToast('Cloud mode active: scans run automatically via GitHub Actions (or trigger workflow in GitHub). Refreshing data...', 'info');
+          showToast('Connect your Render backend URL to run live scans on Vercel!', 'info');
+          openBackendModal();
           await loadAllData();
         }
 
       } catch (err) {
         console.warn('Scan notice:', err);
-        showToast('Tip: Scans run automatically via GitHub Actions, or run `python backend/supabase_sync.py` locally!', 'info');
+        showToast('Error communicating with backend: ' + err.message, 'error');
       } finally {
         runBtn.disabled = false;
         runBtn.classList.remove('opacity-75', 'cursor-not-allowed');
@@ -1589,6 +1738,14 @@
 
       if (connected) {
         setupSupabaseRealtime();
+      }
+
+      // Check Python Scanner backend status
+      const backendUrl = localStorage.getItem('technofunda_backend_url') || window.API_BASE_URL || '';
+      if (backendUrl) {
+        checkBackendHealth(backendUrl).then(ok => updateBackendIndicator(ok));
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        checkBackendHealth(window.location.origin).then(ok => updateBackendIndicator(ok));
       }
 
       setInterval(fetchStatus, 10000);

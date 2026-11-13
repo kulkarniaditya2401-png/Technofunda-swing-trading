@@ -44,23 +44,27 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("supabase_sync")
 
 
+DEFAULT_SUPABASE_URL = "https://trejvbjnfcrjorvxaqud.supabase.co"
+
+
 def get_supabase_client():
     """
     Initializes Supabase client using either official python supabase sdk
     or direct REST client via requests if supabase package is not yet installed.
     """
-    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    supabase_url = (os.getenv("SUPABASE_URL") or DEFAULT_SUPABASE_URL).strip().rstrip("/")
     # Check for service role key first (for bypassing RLS on write), then anon key
     supabase_key = (
         os.getenv("SUPABASE_SERVICE_ROLE_KEY") or
         os.getenv("SUPABASE_KEY") or
-        os.getenv("SUPABASE_ANON_KEY", "")
+        os.getenv("SUPABASE_ANON_KEY") or
+        ""
     ).strip()
 
-    if not supabase_url or not supabase_key:
-        logger.warning(
-            "SUPABASE_URL or SUPABASE_KEY / SUPABASE_SERVICE_ROLE_KEY is missing from environment. "
-            "Please configure your .env file or GitHub Secrets."
+    if not supabase_key or supabase_key.lower() in ("true", "false", ""):
+        logger.error(
+            "SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY is missing or invalid in environment. "
+            "Please configure your .env file or GitHub Repository Secrets."
         )
         return None
 
@@ -359,9 +363,19 @@ def run_pipeline_and_sync(force_mock: bool = False) -> bool:
 
 
 if __name__ == "__main__":
+    force_mock = False
+    if len(sys.argv) > 1 and sys.argv[1] == "--force-mock":
+        force_mock = True
+    elif os.getenv("FORCE_MOCK", "").strip().lower() in ("true", "1", "yes"):
+        force_mock = True
+
     if len(sys.argv) > 1 and sys.argv[1] == "--sync-only":
         print("Synchronizing existing Excel files to Supabase...")
-        sync_to_supabase()
+        success = sync_to_supabase()
     else:
         print("Running full TechnoFunda pipeline and synchronizing to Supabase...")
-        run_pipeline_and_sync()
+        success = run_pipeline_and_sync(force_mock=force_mock)
+
+    if not success:
+        logger.error("TechnoFunda pipeline sync failed! Exiting with non-zero status.")
+        sys.exit(1)
